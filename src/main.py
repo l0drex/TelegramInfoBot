@@ -6,7 +6,7 @@ import opalcheck
 
 
 # fetch updates from telegram and pass them to the dispatcher
-updater = Updater(token='1287009635:AAEXmTiLS4Ff363FHB6kaHTSpE6CjTrJfwE')
+updater = Updater(token='')
 dispatcher = updater.dispatcher
 jobs = updater.job_queue
 
