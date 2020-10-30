@@ -1,3 +1,5 @@
+#!/usr/bin/env/python
+
 from telegram.ext import Updater, Filters
 from telegram.ext import CommandHandler, MessageHandler, CallbackQueryHandler, CallbackContext
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
@@ -5,7 +7,7 @@ import logging
 import url, secret
 
 
-url = {"opal": "https://bildungsportal.sachsen.de/opal/"}
+urls = {"opal": "https://bildungsportal.sachsen.de/opal/"}
 
 # fetch updates from telegram and pass them to the dispatcher
 updater = Updater(token=secret.token)
@@ -21,15 +23,15 @@ def setup():
 
     # register handlers
     dispatcher.add_handler(
-        CommandHandler('start', handler_start))
-    dispatcher.add_handler(
-        MessageHandler(Filters.text & (~Filters.command), handler_message))
+        CommandHandler('start', handler_help))
     dispatcher.add_handler(
         CommandHandler('check_opal', handler_opal_check))
     dispatcher.add_handler(
-        MessageHandler(Filters.command, handler_unknown))
-    dispatcher.add_handler(
         CallbackQueryHandler(handler_button))
+    dispatcher.add_handler(
+        MessageHandler(Filters.text & (~Filters.command), handler_message))
+    dispatcher.add_handler(
+        MessageHandler(Filters.command, handler_unknown))
 
 
 def main():
@@ -38,27 +40,21 @@ def main():
     updater.idle()
 
 
-def help(update, context):
+def handler_help(update, context):
     # TODO
-    update.message.reply_text("Benutze /start um den Bot zu testen.")
+    update.message.reply_text("/check_opal: Prüfe, ob Opal zur Zeit online ist.")
 
 
-def check_opal(context: CallbackContext):
+def handler_check_opal(context: CallbackContext):
     """Things to do periodically"""
     print('Checking opal status')
-    if url.check_status(url["opal"]):
+    if url.check_status(urls["opal"]):
         context.bot.send_message(chat_id='598112141', text='Opal ist wieder online :tada:')
         # FIXME check if this works
         context.job.schedule_removal()
 
 
 # define handlers for commands
-
-def handler_start(update, context):
-    """Handler for /start"""
-    context.bot.send_message(
-        chat_id=update.effective_chat.id, text="I'm a bot, please talk to me!")
-
 
 def handler_message(update, context):
     """Handler for regular messages"""
@@ -70,7 +66,7 @@ def handler_opal_check(update, context):
     """Handler to check the status of opal"""
     status = "online"
     online = True
-    if not url.check_status(url["opal"]):
+    if not url.check_status(urls["opal"]):
         status = "mal wieder offline"
         online = False
 
@@ -104,7 +100,7 @@ def handler_button(update, context):
     if query.message.text == 'Soll eine Nachricht geschickt werden, sobald Opal wieder online ist?':
         if query.data == '1':
             message = 'Ich werde eine Nachricht schicken, sobald Opal wieder online ist.'
-            job_check_opal = jobs.run_repeating(check_opal, 1, interval=60, first=0)
+            job_check_opal = jobs.run_repeating(handler_check_opal, 1, interval=60, first=0)
         else:
             message = 'Ich schicke keine Nachricht, wenn Opal wieder online ist.'
 
