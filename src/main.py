@@ -5,6 +5,8 @@ import logging
 import url, secret
 
 
+url = {"opal": "https://bildungsportal.sachsen.de/opal/"}
+
 # fetch updates from telegram and pass them to the dispatcher
 updater = Updater(token=secret.token)
 dispatcher = updater.dispatcher
@@ -44,7 +46,7 @@ def help(update, context):
 def check_opal(context: CallbackContext):
     """Things to do periodically"""
     print('Checking opal status')
-    if url.check_status("https://bildungsportal.sachsen.de/opal/"):
+    if url.check_status(url["opal"]):
         context.bot.send_message(chat_id='598112141', text='Opal ist wieder online :tada:')
         # FIXME check if this works
         context.job.schedule_removal()
@@ -68,7 +70,7 @@ def handler_opal_check(update, context):
     """Handler to check the status of opal"""
     status = "online"
     online = True
-    if not url.check_status():
+    if not url.check_status(url["opal"]):
         status = "mal wieder offline"
         online = False
 
