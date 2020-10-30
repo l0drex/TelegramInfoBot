@@ -48,13 +48,6 @@ def main():
     updater.idle()
 
 
-def command_help(update, context):
-    # TODO
-    message = '/check_opal: Prüfe, ob Opal zur Zeit online ist.'
-    message += '/mensa <name> <tag>: Schicke die aktuellen Speisen in der Mensa.'
-    update.message.reply_text(message)
-
-
 def check_opal(context: CallbackContext):
     """Checking opal periodically"""
     print('Checking opal status')
@@ -66,6 +59,12 @@ def check_opal(context: CallbackContext):
 
 # define handlers for commands
 
+def command_help(update, context):
+    # TODO
+    message = '/check_opal: Prüfe, ob Opal zur Zeit online ist.'
+    message += '/mensa <name> <tag>: Schicke die aktuellen Speisen in der Mensa.'
+    update.message.reply_text(message)
+
 
 def command_check(update, context):
     """Handler to check the status of opal"""
@@ -75,8 +74,7 @@ def command_check(update, context):
         status = "mal wieder offline"
         online = False
 
-    context.bot.send_message(
-        chat_id=update.effective_chat.id, text=f"Opal ist zur Zeit {status}.")
+    update.message.reply_text(f"Opal ist zur Zeit {status}.")
 
     if not online:
         # if opal is down, ask to check periodical
@@ -123,7 +121,7 @@ def command_canteen(update, context):
         meal_price = meal['prices']['Studierende']
         message += f'\n{meal_name} ({meal_price}€)'
 
-    context.bot.send_message(chat_id=update.effective_chat.id, text=message)
+    update.message.reply_text(message)
 
 
 def handler_message(update, context):
@@ -151,10 +149,7 @@ def button(update, context):
 
 def command_unknown(update, context):
     """Handler for unknown commands"""
-    context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text="Sorry, das hab ich nicht verstanden."
-        )
+    update.message.reply_text("Sorry, das hab ich nicht verstanden.")
 
 
 def error(update, context):
