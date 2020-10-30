@@ -128,5 +128,8 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# ide stuff
+.idea/
+
 # Secret
 src/secret.py

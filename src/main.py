@@ -2,7 +2,7 @@ from telegram.ext import Updater, Filters
 from telegram.ext import CommandHandler, MessageHandler, CallbackQueryHandler, CallbackContext
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 import logging
-import opal, secret
+import url, secret
 
 
 # fetch updates from telegram and pass them to the dispatcher
@@ -44,8 +44,8 @@ def help(update, context):
 def check_opal(context: CallbackContext):
     """Things to do periodically"""
     print('Checking opal status')
-    if opal.check_status():
-        context.bot.send_message(chat_id='598112141', text='Opal ist wieder online :party:')
+    if url.check_status("https://bildungsportal.sachsen.de/opal/"):
+        context.bot.send_message(chat_id='598112141', text='Opal ist wieder online :tada:')
         # FIXME check if this works
         context.job.schedule_removal()
 
@@ -68,7 +68,7 @@ def handler_opal_check(update, context):
     """Handler to check the status of opal"""
     status = "online"
     online = True
-    if not opal.check_status():
+    if not url.check_status():
         status = "mal wieder offline"
         online = False
 
