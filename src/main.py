@@ -1,11 +1,12 @@
 #!/usr/bin/env/python
 
+from datetime import date
 from telegram.ext import Updater, Filters
 from telegram.ext import CommandHandler, MessageHandler, CallbackQueryHandler, CallbackContext
 from telegram.error import TelegramError, Unauthorized, BadRequest, TimedOut, ChatMigrated, NetworkError
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 import logging
-import url, secret
+import url, secret, canteen
 
 
 urls = {"opal": "https://bildungsportal.sachsen.de/opal/"}
@@ -24,12 +25,11 @@ def setup():
 
     # register handlers
     dispatcher.add_handler(
-        CommandHandler('start', command_help))
-    dispatcher.add_handler(
-        CommandHandler('help', command_help)
-    )
+        CommandHandler(['start', 'help'], command_help))
     dispatcher.add_handler(
         CommandHandler('check_opal', command_check))
+    dispatcher.add_handler(
+        CommandHandler('mensa', command_canteen))
     dispatcher.add_handler(
         CallbackQueryHandler(button))
     dispatcher.add_handler(
@@ -61,11 +61,6 @@ def check_opal(context: CallbackContext):
 
 # define handlers for commands
 
-def handler_message(update, context):
-    """Handler for regular messages"""
-    # TODO check if this is something the bot can do
-    pass
-
 
 def command_check(update, context):
     """Handler to check the status of opal"""
@@ -90,6 +85,42 @@ def command_check(update, context):
             'Soll eine Nachricht geschickt werden, ' +
             'sobald Opal wieder online ist?',
             reply_markup=InlineKeyboardMarkup(keyboard))
+
+
+def command_canteen(update, context):
+    """Handler to get current meals from the canteen"""
+    # /mensa WUeins heute
+    # /mensa Alte morgen
+
+    # get canteen
+    canteen_selected = context.args[0]
+    canteens = canteen.get_canteens()
+    for c in canteens:
+        if c['name'] == canteen_selected:
+            canteen = c['id']
+            break
+
+    # get day
+    day = context.args[1]
+    if day == 'heute':
+        day = date.today()
+
+    # get meals
+    meals = canteen.get_meals(canteen['id'], day.isoformat())
+
+    message = 'Heute gibt es: \n'
+    for meal in meals:
+        meal_name = meal['name']
+        meal_price = meal['prices']['students']
+        message += f'{meal_name} ({meal_price}€)'
+
+    context.bot.send_message(chat_id=update.effective_chat.id, text=message)
+
+
+def handler_message(update, context):
+    """Handler for regular messages"""
+    # TODO check if this is something the bot can do
+    pass
 
 
 def button(update, context):
