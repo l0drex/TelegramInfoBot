@@ -2,6 +2,7 @@
 
 from telegram.ext import Updater, Filters
 from telegram.ext import CommandHandler, MessageHandler, CallbackQueryHandler, CallbackContext
+from telegram.error import TelegramError, Unauthorized, BadRequest, TimedOut, ChatMigrated, NetworkError
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 import logging
 import url, secret
@@ -23,15 +24,19 @@ def setup():
 
     # register handlers
     dispatcher.add_handler(
-        CommandHandler('start', handler_help))
+        CommandHandler('start', command_help))
     dispatcher.add_handler(
-        CommandHandler('check_opal', handler_opal_check))
+        CommandHandler('help', command_help)
+    )
     dispatcher.add_handler(
-        CallbackQueryHandler(handler_button))
+        CommandHandler('check_opal', command_check))
+    dispatcher.add_handler(
+        CallbackQueryHandler(button))
     dispatcher.add_handler(
         MessageHandler(Filters.text & (~Filters.command), handler_message))
     dispatcher.add_handler(
-        MessageHandler(Filters.command, handler_unknown))
+        MessageHandler(Filters.command, command_unknown))
+    dispatcher.add_error_handler(error)
 
 
 def main():
@@ -40,13 +45,13 @@ def main():
     updater.idle()
 
 
-def handler_help(update, context):
+def command_help(update, context):
     # TODO
     update.message.reply_text("/check_opal: Prüfe, ob Opal zur Zeit online ist.")
 
 
-def handler_check_opal(context: CallbackContext):
-    """Things to do periodically"""
+def check_opal(context: CallbackContext):
+    """Checking opal periodically"""
     print('Checking opal status')
     if url.check_status(urls["opal"]):
         context.bot.send_message(chat_id='598112141', text='Opal ist wieder online :tada:')
@@ -62,16 +67,13 @@ def handler_message(update, context):
     pass
 
 
-def handler_opal_check(update, context):
+def command_check(update, context):
     """Handler to check the status of opal"""
     status = "online"
     online = True
     if not url.check_status(urls["opal"]):
         status = "mal wieder offline"
         online = False
-
-    # FIXME just for testing
-    online = False
 
     context.bot.send_message(
         chat_id=update.effective_chat.id, text=f"Opal ist zur Zeit {status}.")
@@ -90,7 +92,7 @@ def handler_opal_check(update, context):
             reply_markup=InlineKeyboardMarkup(keyboard))
 
 
-def handler_button(update, context):
+def button(update, context):
     """Handler for button presses"""
     query = update.callback_query
     query.answer()
@@ -100,19 +102,44 @@ def handler_button(update, context):
     if query.message.text == 'Soll eine Nachricht geschickt werden, sobald Opal wieder online ist?':
         if query.data == '1':
             message = 'Ich werde eine Nachricht schicken, sobald Opal wieder online ist.'
-            job_check_opal = jobs.run_repeating(handler_check_opal, 1, interval=60, first=0)
+            job_check_opal = jobs.run_repeating(check_opal, interval=120, first=0)
         else:
             message = 'Ich schicke keine Nachricht, wenn Opal wieder online ist.'
 
     query.edit_message_text(text=message)
 
 
-def handler_unknown(update, context):
+def command_unknown(update, context):
     """Handler for unknown commands"""
     context.bot.send_message(
         chat_id=update.effective_chat.id,
         text="Sorry, das hab ich nicht verstanden."
         )
+
+
+def error(update, context):
+    """Log errors caused by updates"""
+    # TODO handle exceptions
+    try:
+        raise context.error
+    except Unauthorized:
+        # remove update.message.chat_id from conversation list
+        pass
+    except BadRequest:
+        # handle malformed requests
+        pass
+    except TimedOut:
+        # handle slow connection problems
+        pass
+    except NetworkError:
+        # handle other connection problems
+        pass
+    except ChatMigrated as e:
+        pass
+        # the chat_id of a group has changed, use e.new_chat_id instead
+    except TelegramError:
+        pass
+        # handle all other telegram related errors
 
 
 if __name__ == "__main__":

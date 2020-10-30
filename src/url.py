@@ -6,7 +6,7 @@ def check_status(url: str) -> bool:
     r = requests.get(url)
 
     # check status code
-    if r.status_code[0] < 5:
+    if r.status_code >= 500:
         return False
     url_new = str(r)
 
