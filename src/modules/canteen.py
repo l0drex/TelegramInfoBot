@@ -7,7 +7,9 @@ Coordinate = Tuple[float, float]
 Radius = Tuple[Coordinate, float]
 
 
-def send_request(url: str, params: dict) -> dict:
+def send_request(url: str, params: Optional[dict] = None) -> dict:
+    """Sends requests to the url with parameters and returns the response."""
+    print(f'Sending request to {url}')
     response = requests.get(url, params)
     response.encoding = 'UTF-8'
     return response.json()
@@ -79,7 +81,7 @@ def get_meals(id_canteen: str, day: str, id_meal: Optional[str] = None):
 
     # TODO check arguments
 
-    url = url_canteens_dresden + f'/canteen/{id_canteen}/days/{day}/meals'
+    url = url_canteens_dresden + f'/canteens/{id_canteen}/days/{day}/meals'
 
     if id_meal is None:
         return send_request(url)

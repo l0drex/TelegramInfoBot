@@ -1,12 +1,15 @@
 #!/usr/bin/env/python
 
 from datetime import date
+import logging
+
 from telegram.ext import Updater, Filters
 from telegram.ext import CommandHandler, MessageHandler, CallbackQueryHandler, CallbackContext
 from telegram.error import TelegramError, Unauthorized, BadRequest, TimedOut, ChatMigrated, NetworkError
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-import logging
-import url, secret, canteen
+
+import secret
+from modules import canteen, url
 
 
 urls = {"opal": "https://bildungsportal.sachsen.de/opal/"}
@@ -47,7 +50,9 @@ def main():
 
 def command_help(update, context):
     # TODO
-    update.message.reply_text("/check_opal: Prüfe, ob Opal zur Zeit online ist.")
+    message = '/check_opal: Prüfe, ob Opal zur Zeit online ist.'
+    message += '/mensa <name> <tag>: Schicke die aktuellen Speisen in der Mensa.'
+    update.message.reply_text(message)
 
 
 def check_opal(context: CallbackContext):
@@ -93,26 +98,30 @@ def command_canteen(update, context):
     # /mensa Alte morgen
 
     # get canteen
-    canteen_selected = context.args[0]
-    canteens = canteen.get_canteens()
-    for c in canteens:
-        if c['name'] == canteen_selected:
-            canteen = c['id']
-            break
+    canteen_selected = context.args[0].casefold()
+    if not canteen_selected.isdigit():
+        canteens = canteen.get_canteens()
+        for c in canteens:
+            if canteen_selected in c['name'].casefold().replace(' ', ''):
+                canteen_selected = c['id']
+                break
+        if canteen_selected == context.args[0].casefold():
+            # TODO let the user select a canteen
+            pass
 
     # get day
     day = context.args[1]
     if day == 'heute':
-        day = date.today()
+        day = date.today().isoformat()
 
     # get meals
-    meals = canteen.get_meals(canteen['id'], day.isoformat())
+    meals = canteen.get_meals(canteen_selected, day)
 
-    message = 'Heute gibt es: \n'
+    message = 'Heute gibt es:'
     for meal in meals:
         meal_name = meal['name']
-        meal_price = meal['prices']['students']
-        message += f'{meal_name} ({meal_price}€)'
+        meal_price = meal['prices']['Studierende']
+        message += f'\n{meal_name} ({meal_price}€)'
 
     context.bot.send_message(chat_id=update.effective_chat.id, text=message)
 
