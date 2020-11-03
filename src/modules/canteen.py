@@ -31,13 +31,22 @@ def get_canteens(near: Optional[Radius] = None,
     # TODO check arguments
     params = {}
     # add arguments to the params
-    if near is not None and near[0] is not None and near[1] is not None and None not in near[0]:
+    if near is not None and len(near) == 2 and len(near[0]) == 2:
+        coord = near[0]
+        radius = near[1]
+
+        if not (-90 < coord[0] < 90 and -180 < coord[1] < 180):
+            raise ValueError('Coordinates out of range')
+
+        if not (0 < radius < 50):
+            raise ValueError('Distance out of range')
+
         params.update({
                 'near[lat]': near[0][0],
                 'near[long]': near[0][1],
                 'near[dist]': near[1]
             })
-    if ids is not None and None not in ids:
+    if ids is not None and len(ids) > 0:
         params.update({
             'ids': ids
         })

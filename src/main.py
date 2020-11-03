@@ -60,9 +60,9 @@ def check_opal(context: CallbackContext):
 # define handlers for commands
 
 def command_help(update, context):
-    # TODO
+    """Command to show what the bot can do."""
     message = '/check_opal: Prüfe, ob Opal zur Zeit online ist.'
-    message += '/mensa <name> <tag>: Schicke die aktuellen Speisen in der Mensa.'
+    message += '\n/mensa <name> <tag>: Schicke die aktuellen Speisen in der Mensa.'
     update.message.reply_text(message)
 
 
@@ -95,17 +95,28 @@ def command_canteen(update, context):
     # /mensa WUeins heute
     # /mensa Alte morgen
 
+    if len(context.args) < 2:
+        update.message.reply_text('You need to provide a mensa and a day.' +
+                                  '\nUse as followed: /mensa <name> <day>')
+
     # get canteen
     canteen_selected = context.args[0].casefold()
     if not canteen_selected.isdigit():
         canteens = canteen.get_canteens()
+        keyboard = [[]]
         for c in canteens:
-            if canteen_selected in c['name'].casefold().replace(' ', ''):
+            c_name = c['name'].casefold().replace(' ', '')
+            keyboard.append(InlineKeyboardButton(c_name, callback_data=c['id']))
+            if canteen_selected in c_name:
                 canteen_selected = c['id']
                 break
         if canteen_selected == context.args[0].casefold():
             # TODO let the user select a canteen
-            pass
+            update.message.reply_text(
+                'Mensa konnte nicht gefunden werden.\n' +
+                'Bitte wähle eine aus der Liste aus:',
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
 
     # get day
     day = context.args[1]
@@ -143,7 +154,9 @@ def button(update, context):
             job_check_opal = jobs.run_repeating(check_opal, interval=120, first=0)
         else:
             message = 'Ich schicke keine Nachricht, wenn Opal wieder online ist.'
-
+    elif query.message.text == 'Mensa konnte nicht gefunden werden.\nBitte wähle eine aus der Liste aus:':
+        context.args[0] = query.data
+        command_canteen(update, context)
     query.edit_message_text(text=message)
 
 
