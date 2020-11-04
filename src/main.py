@@ -9,7 +9,7 @@ from telegram.error import TelegramError, Unauthorized, BadRequest, TimedOut, Ch
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 import secret
-from modules import canteen, url
+from modules import openmensa, url
 
 
 urls = {"opal": "https://bildungsportal.sachsen.de/opal/"}
@@ -102,7 +102,7 @@ def command_canteen(update, context):
     # get canteen
     canteen_selected = context.args[0].casefold()
     if not canteen_selected.isdigit():
-        canteens = canteen.get_canteens()
+        canteens = openmensa.get_canteens()
         keyboard = [[]]
         for c in canteens:
             c_name = c['name'].casefold().replace(' ', '')
@@ -124,7 +124,7 @@ def command_canteen(update, context):
         day = date.today().isoformat()
 
     # get meals
-    meals = canteen.get_meals(canteen_selected, day)
+    meals = openmensa.get_meals(canteen_selected, day)
 
     message = 'Heute gibt es:'
     for meal in meals:
