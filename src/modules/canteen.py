@@ -2,13 +2,19 @@ from datetime import date
 from typing import Optional, List, Tuple, Union
 import requests
 
-url_canteens_dresden = 'https://api.studentenwerk-dresden.de/openmensa/v2'
 Coordinate = Tuple[float, float]
 Radius = Tuple[Coordinate, float]
+Canteen = {str, str, str, str, Coordinate}
+
+url_canteens_dresden = 'https://api.studentenwerk-dresden.de/openmensa/v2'
 
 
-def send_request(url: str, params: Optional[dict] = None) -> dict:
-    """Sends requests to the url with parameters and returns the response."""
+def send_request(url: str, params: Optional[dict] = None):
+    """ Sends requests to the url with parameters and returns the response."""
+
+    if not url.isprintable():
+        raise ValueError('Url must not be null or empty')
+
     print(f'Sending request to {url}')
     response = requests.get(url, params)
     response.encoding = 'UTF-8'
@@ -17,22 +23,20 @@ def send_request(url: str, params: Optional[dict] = None) -> dict:
 
 def get_canteens(near: Optional[Radius] = None,
                  ids: Optional[List[str]] = None,
-                 has_coordinates: Optional[bool] = None) -> dict:
+                 has_coordinates: Optional[bool] = None) -> List[Canteen]:
+    """ Returns a list of canteens
+
+    :param near: Radius Used to list only canteens within a distance from a point.
+    :param ids: Return only canteens with these ids.
+    :param has_coordinates: Return only canteens with or without coordinates
+
+    :return: A dict with all canteens
     """
-    Returns a list of canteens
 
-    :param near: ((lat, long), dist) Used to list only canteens within a distance from a point.
-    :param ids: [id1, id2, ...] Return only canteens with these ids.
-    :param has_coordinates: Return only canteens with coordinates
-
-    :return: A dict with all canteens [{id: str, name: str, city: str, address: str, coordinates: [lat, long]}]
-    """
-
-    # TODO check arguments
     params = {}
     # add arguments to the params
-    if near is not None and len(near) == 2 and len(near[0]) == 2:
-        coord = near[0]
+    if near is not None:
+        coord: Coordinate = near[0]
         radius = near[1]
 
         if not (-90 < coord[0] < 90 and -180 < coord[1] < 180):
@@ -46,7 +50,10 @@ def get_canteens(near: Optional[Radius] = None,
                 'near[long]': near[0][1],
                 'near[dist]': near[1]
             })
-    if ids is not None and len(ids) > 0:
+    if ids is not None:
+        if len(ids) <= 0 or '' in ids:
+            raise ValueError('ids and id must not be empty!')
+
         params.update({
             'ids': ids
         })
@@ -57,45 +64,58 @@ def get_canteens(near: Optional[Radius] = None,
     return send_request(url_canteens_dresden + '/canteens', params)
 
 
-def get_days(id_canteen: str,
-             day: Optional[str] = None,
-             start: str = date.today().isoformat()) -> Union[list, dict]:
+def get_canteen(id_canteen: str) -> Canteen:
+    """ Returns a canteen
+    Shortcut for get_canteens(ids=[id])
     """
-    List days of a canteen. Useful to determine if a canteen is open or not.
 
-    :param id_canteen: ID of the canteen
+    return get_canteens(ids=[id_canteen])
+
+
+def get_days(canteen_id: str,
+             day: Optional[date] = None,
+             start: str = date.today().isoformat()) -> Union[list, dict]:
+    """ List days of a canteen. Useful to determine if a canteen is open or not.
+
+    :param canteen_id: ID of the canteen
     :param day: Return only a single day of the date provided.
     :param start: Start day. Defaults to today
     :return:
     """
 
-    # TODO check arguments
-    # TODO allow canteen name and datetime objects
-
-    url = url_canteens_dresden + f'/canteens/{id_canteen}/days'
+    url = url_canteens_dresden + f'/canteens/{canteen_id}/days'
     if day is None:
         return send_request(url, {'start': start})
     else:
-        return send_request(url + f'/{day}')
+        return send_request(url + f'/{day.isoformat()}')
 
 
-def get_meals(id_canteen: str, day: str, id_meal: Optional[str] = None):
+def get_day(id_canteen: str,
+            day: date) -> dict:
+    """ Return a single day.
+    Shortcut for get_days(canteen_id, days=[day])
     """
-    Returns the available meals on a certain day in a canteen.
+    return get_days(id_canteen, day=day)
+
+
+def get_meals(id_canteen: str, day: date, id_meal: Optional[str] = None) -> Union[list, dict]:
+    """ Returns the available meals on a certain day in a canteen.
 
     :param id_canteen: ID of the canteen
     :param day: the day to be searched for meals
     :param id_meal: ID of a meal to be returned
     """
 
-    # TODO check arguments
-
-    url = url_canteens_dresden + f'/canteens/{id_canteen}/days/{day}/meals'
+    url = url_canteens_dresden + f'/canteens/{id_canteen}/days/{day.isoformat()}/meals'
 
     if id_meal is None:
         return send_request(url)
     else:
         return send_request(url + f'/{id_meal}')
 
-# TODO maybe add a class for canteens?
 
+def get_meal(id_canteen: str, day: date, id_meal: str) -> dict:
+    """ Returns a meal
+    Shortcut for get_meals(canteen_id, day, id_meal=id_meal)
+    """
+    return get_meals(id_canteen, day, id_meal=id_meal)
