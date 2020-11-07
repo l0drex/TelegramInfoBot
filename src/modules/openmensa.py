@@ -76,7 +76,7 @@ class Canteen:
             return False
 
 
-url_canteen = 'https://api.studentenwerk-dresden.de/openmensa/v2'
+url_canteen = ''
 
 
 def send_request(url: str, params: Optional[dict] = None):

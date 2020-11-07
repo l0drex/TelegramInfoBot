@@ -2,6 +2,7 @@
 
 from datetime import date
 import logging
+from typing import List
 
 from telegram.ext import Updater, Filters
 from telegram.ext import CommandHandler, MessageHandler, CallbackQueryHandler, CallbackContext
@@ -11,8 +12,8 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 import secret
 from modules import openmensa, url
 
-
-urls = {"opal": "https://bildungsportal.sachsen.de/opal/"}
+urls = {'opal': 'https://bildungsportal.sachsen.de/opal/',
+        'mensa': 'https://api.studentenwerk-dresden.de/openmensa/v2'}
 
 # fetch updates from telegram and pass them to the dispatcher
 updater = Updater(token=secret.token)
@@ -21,6 +22,8 @@ jobs = updater.job_queue
 
 
 def setup():
+    openmensa.url_canteen = urls['mensa']
+
     # create logs
     logging.basicConfig(
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -61,8 +64,8 @@ def check_opal(context: CallbackContext):
 
 def command_help(update, context):
     """Command to show what the bot can do."""
-    message = '/check_opal: Prüfe, ob Opal zur Zeit online ist.'
-    message += '\n/mensa <name> <tag>: Schicke die aktuellen Speisen in der Mensa.'
+    message = '/check_opal: Prüfe, ob Opal zur Zeit online ist. :books:'
+    message += '\n/mensa <name> <tag>: Schicke die aktuellen Speisen in der Mensa. :fork_and_knife:'
     update.message.reply_text(message)
 
 
@@ -79,11 +82,11 @@ def command_check(update, context):
     if not online:
         # if opal is down, ask to check periodical
         keyboard = [
-                [
-                    InlineKeyboardButton("Nein", callback_data='0'),
-                    InlineKeyboardButton("Ja", callback_data='1')
-                ]
+            [
+                InlineKeyboardButton("Nein", callback_data='0'),
+                InlineKeyboardButton("Ja", callback_data='1')
             ]
+        ]
         update.message.reply_text(
             'Soll eine Nachricht geschickt werden, ' +
             'sobald Opal wieder online ist?',
@@ -94,43 +97,54 @@ def command_canteen(update, context):
     """Handler to get current meals from the canteen"""
     # /mensa WUeins heute
     # /mensa Alte morgen
+    # fixme
 
-    if len(context.args) < 2:
-        update.message.reply_text('You need to provide a mensa and a day.' +
-                                  '\nUse as followed: /mensa <name> <day>')
+    # set argument variables
+    day = date.today()
+    canteen_selected = ''
+    if len(context.args) >= 1:
+        canteen_selected = context.args[0].casefold()
+    elif len(context.args) >= 2:
+        day = context.args[1]
 
-    # get canteen
-    canteen_selected = context.args[0].casefold()
-    if not canteen_selected.isdigit():
-        canteens = openmensa.get_canteens()
-        keyboard = [[]]
-        for c in canteens:
-            c_name = c['name'].casefold().replace(' ', '')
-            keyboard.append(InlineKeyboardButton(c_name, callback_data=c['id']))
-            if canteen_selected in c_name:
-                canteen_selected = c['id']
-                break
-        if canteen_selected == context.args[0].casefold():
-            # TODO let the user select a canteen
-            update.message.reply_text(
-                'Mensa konnte nicht gefunden werden.\n' +
-                'Bitte wähle eine aus der Liste aus:',
-                reply_markup=InlineKeyboardMarkup(keyboard)
-            )
+    canteens: List[openmensa.Canteen] = openmensa.get_canteens()
+    keyboard = []
+    i = 0
+
+    # search for a canteen that matches the user request
+    for c in canteens:
+        c_name = c.name.casefold().replace(' ', '')
+
+        if i % 2 == 0:
+            keyboard[i].append([])
+        keyboard[(i * 0.5)][i % 2].append(InlineKeyboardButton(c.name, callback_data=c.id))
+        if canteen_selected != '' and canteen_selected in c_name:
+            canteen_selected = c
+            break
+        i += 1
+
+    # if no canteen could be found, provide buttons
+    if not isinstance(canteen_selected, openmensa.Canteen):
+        # TODO let the user select a canteen
+        update.message.reply_text(
+            'Mensa konnte nicht gefunden werden.\n' +
+            'Bitte wähle eine aus der Liste aus:',
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+        return
 
     # get day
-    day = context.args[1]
     if day == 'heute':
         day = date.today().isoformat()
 
     # get meals
-    meals = openmensa.get_meals(canteen_selected, day)
+    meals = canteen_selected.get_meals(day)
 
     message = 'Heute gibt es:'
     for meal in meals:
         meal_name = meal['name']
         meal_price = meal['prices']['Studierende']
-        message += f'\n{meal_name} ({meal_price}€)'
+        message += f'\n\n * {meal_name} ({meal_price}€)'
 
     update.message.reply_text(message)
 
@@ -148,12 +162,14 @@ def button(update, context):
     message = 'Unknown button'
 
     # NOTE add button handlers here
+    # opal
     if query.message.text == 'Soll eine Nachricht geschickt werden, sobald Opal wieder online ist?':
         if query.data == '1':
             message = 'Ich werde eine Nachricht schicken, sobald Opal wieder online ist.'
             job_check_opal = jobs.run_repeating(check_opal, interval=120, first=0)
         else:
             message = 'Ich schicke keine Nachricht, wenn Opal wieder online ist.'
+    # mensa
     elif query.message.text == 'Mensa konnte nicht gefunden werden.\nBitte wähle eine aus der Liste aus:':
         context.args[0] = query.data
         command_canteen(update, context)
