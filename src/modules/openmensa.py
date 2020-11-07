@@ -72,9 +72,19 @@ class Canteen:
         url = self.url + f'/days/{day.isoformat()}/meals'
 
         if id_meal is None:
-            return send_request(url)
+            reply = send_request(url)
+
+            # the url for the image is malformed, lets fix that
+            for meal in reply:
+                if 'image' in meal.keys():
+                    meal['image'] = 'https:' + meal['image']
         else:
-            return send_request(url + f'/{id_meal}')
+            reply = send_request(url + f'/{id_meal}')
+
+            # same as above
+            if 'image' in reply.keys():
+                reply['image'] = 'https:' + reply['image']
+        return reply
 
     def get_meal(self, day: date, id_meal: str) -> dict:
         """ Returns a meal

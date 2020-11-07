@@ -77,6 +77,8 @@ class TestCanteenApi(unittest.TestCase):
             for p in prices:
                 self.assertTrue(p in m['prices'], f'Prices should contain {p}')
 
+            self.assertTrue(m['image'].startswith('https://'), 'The url of the image is malformed.')
+
     def test_get_meal(self):
         day = self.canteen.get_days()[0]['date']
         meal = self.canteen.get_meals(day)[0]
