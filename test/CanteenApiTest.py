@@ -40,16 +40,23 @@ class TestCanteenApi(unittest.TestCase):
         days = self.canteen.get_days()
         self.assertIsInstance(days, list)
 
-        # this is not elegant, but i'm lazy ;)
-        days.append(self.canteen.get_days(day=date.today()))
+        for i in range(len(days)):
+            d = days[i]
+            self.assertIsInstance(d['date'], date, 'Entry date should be of type datetime.date')
+            self.assertIsInstance(d['closed'], bool, 'Entry closed should be of type bool')
+            if i < len(days) - 1:
+                self.assertTrue(d['date'] < days[i+1]['date'], 'The list should be sorted correctly')
 
-        for d in days:
-            with self.subTest('The entries of day should have correct types', d=d):
-                self.assertIsInstance(d['date'], date, 'Entry date should be of type datetime.date')
-                self.assertIsInstance(d['closed'], bool, 'Entry closed should be of type bool')
+        day = self.canteen.get_days(day=date.today())
+        self.assertIsInstance(day['date'], date, 'Entry date should be of type datetime.date')
+        self.assertIsInstance(day['closed'], bool, 'Entry closed should be of type bool')
 
     def test_get_day(self):
         self.assertEqual(self.canteen.get_day(date.today()), self.canteen.get_days(day=date.today()))
+
+    def test_get_next_day_opened(self):
+        day = self.canteen.get_next_day_opened()
+        self.assertFalse(self.canteen.get_day(day)['closed'])
 
     def test_get_meals(self):
         meals = self.canteen.get_meals(self.canteen.get_days()[0]['date'])
@@ -59,17 +66,16 @@ class TestCanteenApi(unittest.TestCase):
         prices = ['Studierende', 'Bedienstete']
 
         for m in meals:
-            with self.subTest('All meals returned should have the correct type', m=m):
-                self.assertIsInstance(m, dict)
+            self.assertIsInstance(m, dict)
 
-                for k in keys:
-                    self.assertTrue(k in m.keys(), f'Every meal should have a {k}')
+            for k in keys:
+                self.assertTrue(k in m.keys(), f'Every meal should have a {k}')
 
-                self.assertIsInstance(m['notes'], list, 'Notes should be a list')
-                self.assertIsInstance(m['prices'], dict, 'Prices should be a dict')
+            self.assertIsInstance(m['notes'], list, 'Notes should be a list')
+            self.assertIsInstance(m['prices'], dict, 'Prices should be a dict')
 
-                for p in prices:
-                    self.assertTrue(p in m['prices'], f'Prices should contain {p}')
+            for p in prices:
+                self.assertTrue(p in m['prices'], f'Prices should contain {p}')
 
     def test_get_meal(self):
         day = self.canteen.get_days()[0]['date']

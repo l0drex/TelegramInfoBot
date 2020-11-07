@@ -40,6 +40,7 @@ class Canteen:
             for i in range(len(days)):
                 # NOTE use 'date' here in the list and 'day' in the dict below
                 days[i]['date'] = date.fromisoformat(days[i]['date'])
+            days.sort(key=lambda k: k['date'])
             return days
         else:
             day: dict = send_request(url + f'/{day.isoformat()}')
@@ -53,6 +54,13 @@ class Canteen:
         Shortcut for get_days(canteen_id, days=[day])
         """
         return self.get_days(day=day)
+
+    def get_next_day_opened(self):
+        """Returns the next day the mensa is opened."""
+        days = self.get_days()
+        for d in days:
+            if not d['closed']:
+                return d['date']
 
     def get_meals(self, day: date, id_meal: Optional[str] = None) -> Union[list, dict]:
         """ Returns the available meals on a certain day in a canteen.
