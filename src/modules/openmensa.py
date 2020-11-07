@@ -22,10 +22,11 @@ class Canteen:
         self.city = city
         self.address = address
         self.coordinates = coordinates
+        self.url = url_canteen + f'/canteens/{self.id}'
 
     def get_days(self,
                  day: Optional[date] = None,
-                 start: str = date.today().isoformat()) -> Union[list, dict]:
+                 start: date = date.today()) -> Union[list, dict]:
         """ List days of a canteen. Useful to determine if a canteen is open or not.
 
         :param day: Return only a single day of the date provided.
@@ -33,11 +34,18 @@ class Canteen:
         :return:
         """
 
-        url = url_canteen + f'/canteens/{self.id}/days'
+        url = self.url + '/days'
         if day is None:
-            return send_request(url, {'start': start})
+            days: list = send_request(url, {'start': start.isoformat()})
+            for i in range(len(days)):
+                # NOTE use 'date' here in the list and 'day' in the dict below
+                days[i]['date'] = date.fromisoformat(days[i]['date'])
+            return days
         else:
-            return send_request(url + f'/{day.isoformat()}')
+            day: dict = send_request(url + f'/{day.isoformat()}')
+            # I'm fixing the key inconsistency here
+            day['date'] = date.fromisoformat(day.pop('day'))
+            return day
 
     def get_day(self,
                 day: date) -> dict:
@@ -53,7 +61,7 @@ class Canteen:
         :param id_meal: ID of a meal to be returned
         """
 
-        url = url_canteen + f'/canteens/{self.id}/days/{day.isoformat()}/meals'
+        url = self.url + f'/days/{day.isoformat()}/meals'
 
         if id_meal is None:
             return send_request(url)
@@ -65,6 +73,9 @@ class Canteen:
         Shortcut for get_meals(canteen_id, day, id_meal=id_meal)
         """
         return self.get_meals(day, id_meal=id_meal)
+
+    def has_coordinates(self) -> bool:
+        return self.coordinates is not None
 
     def __str__(self):
         return self.name
@@ -93,7 +104,7 @@ def send_request(url: str, params: Optional[dict] = None):
 
 def get_canteens(near: Optional[Radius] = None,
                  ids: Optional[List[str]] = None,
-                 has_coordinates: Optional[bool] = None) -> List[Canteen]:
+                 has_coordinates: bool = False) -> List[Canteen]:
     """ Returns a list of canteens
 
     :param near: Radius Used to list only canteens within a distance from a point.

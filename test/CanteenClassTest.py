@@ -43,6 +43,13 @@ class TestCanteenClass(unittest.TestCase):
                                   params['id'], params['name'],
                                   params['city'], params['address'], params['coordinates'])
 
+    def test_has_coordinates(self):
+        canteen = openmensa.Canteen(self.params['id'], self.params['name'], coordinates=self.params['coordinates'])
+        self.assertTrue(canteen.has_coordinates())
+
+        canteen = openmensa.Canteen(self.params['id'], self.params['name'])
+        self.assertFalse(canteen.has_coordinates())
+
 
 if __name__ == '__main__':
     unittest.main()
