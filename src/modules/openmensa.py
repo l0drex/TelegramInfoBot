@@ -40,10 +40,16 @@ class Canteen:
             for i in range(len(days)):
                 # NOTE use 'date' here in the list and 'day' in the dict below
                 days[i]['date'] = date.fromisoformat(days[i]['date'])
+
+            # the api does return days before today, lets fix that
+            days = [day for day in days if day['date'] > date.today()]
+
             days.sort(key=lambda k: k['date'])
+
             return days
         else:
             day: dict = send_request(url + f'/{day.isoformat()}')
+
             # I'm fixing the key inconsistency here
             day['date'] = date.fromisoformat(day.pop('day'))
             return day
@@ -55,7 +61,7 @@ class Canteen:
         """
         return self.get_days(day=day)
 
-    def get_next_day_opened(self):
+    def get_next_day_opened(self) -> date:
         """Returns the next day the mensa is opened."""
         days = self.get_days()
         for d in days:

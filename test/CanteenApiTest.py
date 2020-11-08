@@ -57,6 +57,7 @@ class TestCanteenApi(unittest.TestCase):
     def test_get_next_day_opened(self):
         day = self.canteen.get_next_day_opened()
         self.assertFalse(self.canteen.get_day(day)['closed'])
+        self.assertTrue(day > date.today(), 'The next day opened should not be before today')
 
     def test_get_meals(self):
         meals = self.canteen.get_meals(self.canteen.get_days()[0]['date'])
