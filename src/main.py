@@ -1,13 +1,13 @@
 #!/usr/bin/env/python
-
-from datetime import date
+import math
+from datetime import date, timedelta
 import logging
 from typing import List
 
 from telegram.ext import Updater, Filters
 from telegram.ext import CommandHandler, MessageHandler, CallbackQueryHandler, CallbackContext
 from telegram.error import TelegramError, Unauthorized, BadRequest, TimedOut, ChatMigrated, NetworkError
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ParseMode
 
 import secret
 from modules import openmensa, url
@@ -100,53 +100,66 @@ def command_canteen(update, context):
     # fixme
 
     # set argument variables
-    day = date.today()
-    canteen_selected = ''
+    day_str = ''
+    canteen_str: str = ''
+
     if len(context.args) >= 1:
-        canteen_selected = context.args[0].casefold()
-    elif len(context.args) >= 2:
-        day = context.args[1]
+        canteen_str = context.args[0].casefold()
+    if len(context.args) >= 2:
+        day_str = context.args[1].casefold()
 
     canteens: List[openmensa.Canteen] = openmensa.get_canteens()
-    keyboard = []
+    canteens_str = ''
     i = 0
 
+    canteen: openmensa.Canteen = None
     # search for a canteen that matches the user request
     for c in canteens:
-        c_name = c.name.casefold().replace(' ', '')
-
-        if i % 2 == 0:
-            keyboard[i].append([])
-        keyboard[(i * 0.5)][i % 2].append(InlineKeyboardButton(c.name, callback_data=c.id))
-        if canteen_selected != '' and canteen_selected in c_name:
-            canteen_selected = c
+        c_name = c.name.casefold().replace(' ', '').replace('mensa', '')
+        canteens_str += f'{c_name}\n'
+        if canteen_str != '' and canteen_str in c_name:
+            canteen = openmensa.Canteen(c.id, c.name)
             break
         i += 1
 
     # if no canteen could be found, provide buttons
-    if not isinstance(canteen_selected, openmensa.Canteen):
+    if not isinstance(canteen, openmensa.Canteen):
         # TODO let the user select a canteen
         update.message.reply_text(
             'Mensa konnte nicht gefunden werden.\n' +
-            'Bitte wähle eine aus der Liste aus:',
-            reply_markup=InlineKeyboardMarkup(keyboard)
+            'Folgende Mensen sind verfügbar:\n\n' +
+            canteens_str
         )
         return
 
     # get day
-    if day == 'heute':
-        day = date.today().isoformat()
+    if day_str in ['heute', 'today']:
+        day = date.today()
+    elif day_str in ['morgen', 'tomorrow']:
+        day = date.today() + timedelta(days=1)
+    else:
+        try:
+            day = date.fromisoformat(day_str)
+        except ValueError:
+            day = date.today()
 
     # get meals
-    meals = canteen_selected.get_meals(day)
+    meals = canteen.get_meals(day)
 
-    message = 'Heute gibt es:'
-    for meal in meals:
-        meal_name = meal['name']
-        meal_price = meal['prices']['Studierende']
-        message += f'\n\n * {meal_name} ({meal_price}€)'
+    update.message.reply_text(f'Am {day.strftime("%d.%m.%Y")} gibt es:')
 
-    update.message.reply_text(message)
+    if len(meals) == 0:
+        day: date = canteen.get_days()[0]['date']
+        update.message.reply_text('Leider nichts. Die Mensa öffnet erst wieder am ' + day.strftime('%d.%m.%Y'))
+    else:
+        for meal in meals:
+            meal_name = meal['name']
+            meal_price = f"{meal['prices']['Studierende']}€ / {meal['prices']['Bedienstete']}€"
+            meal_url = meal['url']
+            meal_photo = meal['image']
+            message: str = f'{meal_name} ({meal_price})\n{meal_photo}'
+            # TODO markdown parsing
+            update.message.reply_text(message)
 
 
 def handler_message(update, context):
@@ -169,10 +182,6 @@ def button(update, context):
             job_check_opal = jobs.run_repeating(check_opal, interval=120, first=0)
         else:
             message = 'Ich schicke keine Nachricht, wenn Opal wieder online ist.'
-    # mensa
-    elif query.message.text == 'Mensa konnte nicht gefunden werden.\nBitte wähle eine aus der Liste aus:':
-        context.args[0] = query.data
-        command_canteen(update, context)
     query.edit_message_text(text=message)
 
 
