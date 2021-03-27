@@ -1,4 +1,5 @@
-#!/usr/bin/env/python
+#!/usr/bin/env python
+
 from datetime import date, timedelta
 import logging
 from typing import List
