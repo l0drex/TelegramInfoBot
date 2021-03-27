@@ -5,7 +5,7 @@ A simple bot to inform about important stuff related to studying media science a
 * [x] check, if opal is currently online
 * [x] notify, if opal is online again
 * [x] send current canteen menus
-* [ ] notify about changes is git repos
+* [ ] notify about changes in git repos
 * [ ] send notifications from matrix, slack and discord
 
 # How does it work?
