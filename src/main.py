@@ -1,5 +1,4 @@
 #!/usr/bin/env/python
-import math
 from datetime import date, timedelta
 import logging
 from typing import List
@@ -7,7 +6,7 @@ from typing import List
 from telegram.ext import Updater, Filters
 from telegram.ext import CommandHandler, MessageHandler, CallbackQueryHandler, CallbackContext
 from telegram.error import TelegramError, Unauthorized, BadRequest, TimedOut, ChatMigrated, NetworkError
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ParseMode
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 import secret
 from modules import openmensa, url
@@ -39,8 +38,6 @@ def setup():
     dispatcher.add_handler(
         CallbackQueryHandler(button))
     dispatcher.add_handler(
-        MessageHandler(Filters.text & (~Filters.command), handler_message))
-    dispatcher.add_handler(
         MessageHandler(Filters.command, command_unknown))
     dispatcher.add_error_handler(error)
 
@@ -62,14 +59,14 @@ def check_opal(context: CallbackContext):
 
 # define handlers for commands
 
-def command_help(update, context):
+def command_help(update, _):
     """Command to show what the bot can do."""
     message = '/check_opal: Prüfe, ob Opal zur Zeit online ist. :books:'
     message += '\n/mensa <name> <tag>: Schicke die aktuellen Speisen in der Mensa. :fork_and_knife:'
     update.message.reply_text(message)
 
 
-def command_check(update, context):
+def command_check(update, _):
     """Handler to check the status of opal"""
     status = "online"
     online = True
@@ -162,13 +159,7 @@ def command_canteen(update, context):
             update.message.reply_text(message)
 
 
-def handler_message(update, context):
-    """Handler for regular messages"""
-    # TODO check if this is something the bot can do
-    pass
-
-
-def button(update, context):
+def button(update, _):
     """Handler for button presses"""
     query = update.callback_query
     query.answer()
@@ -179,18 +170,18 @@ def button(update, context):
     if query.message.text == 'Soll eine Nachricht geschickt werden, sobald Opal wieder online ist?':
         if query.data == '1':
             message = 'Ich werde eine Nachricht schicken, sobald Opal wieder online ist.'
-            job_check_opal = jobs.run_repeating(check_opal, interval=120, first=0)
+            jobs.run_repeating(check_opal, interval=120, first=0)
         else:
             message = 'Ich schicke keine Nachricht, wenn Opal wieder online ist.'
     query.edit_message_text(text=message)
 
 
-def command_unknown(update, context):
+def command_unknown(update, _):
     """Handler for unknown commands"""
     update.message.reply_text("Sorry, das hab ich nicht verstanden.")
 
 
-def error(update, context):
+def error(_, context):
     """Log errors caused by updates"""
     # TODO handle exceptions
     try:
@@ -207,7 +198,7 @@ def error(update, context):
     except NetworkError:
         # handle other connection problems
         pass
-    except ChatMigrated as e:
+    except ChatMigrated:
         pass
         # the chat_id of a group has changed, use e.new_chat_id instead
     except TelegramError:

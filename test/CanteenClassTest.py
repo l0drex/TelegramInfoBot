@@ -1,4 +1,3 @@
-from datetime import date
 import unittest
 from src.modules import openmensa
 
