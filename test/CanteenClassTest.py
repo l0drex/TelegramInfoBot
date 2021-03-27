@@ -13,11 +13,11 @@ class TestCanteenClass(unittest.TestCase):
         }
 
     def test_constructor(self):
-        c0 = openmensa.Canteen(self.params['id'], self.params['name'])
-        c1 = openmensa.Canteen(self.params['id'], self.params['name'],
-                               city=self.params['city'], address=self.params['address'])
-        c2 = openmensa.Canteen(self.params['id'], self.params['name'],
-                               coordinates=self.params['coordinates'])
+        c0 = openmensa.MensaManager(self.params['id'], self.params['name'])
+        c1 = openmensa.MensaManager(self.params['id'], self.params['name'],
+                                    city=self.params['city'], address=self.params['address'])
+        c2 = openmensa.MensaManager(self.params['id'], self.params['name'],
+                                    coordinates=self.params['coordinates'])
 
         canteens = [c0, c1, c2]
 
@@ -38,15 +38,15 @@ class TestCanteenClass(unittest.TestCase):
             if key == 'coordinates':
                 break
             with self.subTest(params=params):
-                self.assertRaises(ValueError, openmensa.Canteen,
+                self.assertRaises(ValueError, openmensa.MensaManager,
                                   params['id'], params['name'],
                                   params['city'], params['address'], params['coordinates'])
 
     def test_has_coordinates(self):
-        canteen = openmensa.Canteen(self.params['id'], self.params['name'], coordinates=self.params['coordinates'])
+        canteen = openmensa.MensaManager(self.params['id'], self.params['name'], coordinates=self.params['coordinates'])
         self.assertTrue(canteen.has_coordinates())
 
-        canteen = openmensa.Canteen(self.params['id'], self.params['name'])
+        canteen = openmensa.MensaManager(self.params['id'], self.params['name'])
         self.assertFalse(canteen.has_coordinates())
 
 

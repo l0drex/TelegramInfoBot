@@ -93,71 +93,61 @@ def command_check(update, _):
 
 def command_canteen(update, context):
     """Handler to get current meals from the canteen"""
-    # /mensa WUeins heute
-    # /mensa Alte morgen
-    # fixme
+    # /mensa alte-mensa morgen
 
-    # set argument variables
-    day_str = ''
-    canteen_str: str = ''
-
+    # get canteen
+    canteen = None
     if len(context.args) >= 1:
         canteen_str = context.args[0].casefold()
-    if len(context.args) >= 2:
-        day_str = context.args[1].casefold()
+        canteens: List[openmensa.Canteen] = openmensa.get_canteens()
 
-    canteens: List[openmensa.Canteen] = openmensa.get_canteens()
-    canteens_str = ''
-    i = 0
-
-    canteen: openmensa.Canteen = None
-    # search for a canteen that matches the user request
-    for c in canteens:
-        c_name = c.name.casefold().replace(' ', '').replace('mensa', '')
-        canteens_str += f'{c_name}\n'
-        if canteen_str != '' and canteen_str in c_name:
-            canteen = openmensa.Canteen(c.id, c.name)
-            break
-        i += 1
+        # search for a canteen that matches the user request
+        for c in canteens:
+            c_name = c.name.casefold().replace(' ', '-')
+            if canteen_str != '' and canteen_str in c_name:
+                canteen = openmensa.Canteen(c.id, c.name)
+                break
 
     # if no canteen could be found, provide buttons
-    if not isinstance(canteen, openmensa.Canteen):
+    if canteen is None:
         # TODO let the user select a canteen
         update.message.reply_text(
             'Mensa konnte nicht gefunden werden.\n' +
             'Folgende Mensen sind verfügbar:\n\n' +
-            canteens_str
+            '\n'.join(map(str, [c.name.casefold().replace(' ', '-') for c in openmensa.get_canteens()]))
         )
         return
 
     # get day
-    if day_str in ['heute', 'today']:
-        day = date.today()
-    elif day_str in ['morgen', 'tomorrow']:
-        day = date.today() + timedelta(days=1)
-    else:
-        try:
-            day = date.fromisoformat(day_str)
-        except ValueError:
+    if len(context.args) >= 2:
+        day_str = context.args[1].casefold()
+        if day_str in ['heute', 'today']:
             day = date.today()
+        elif day_str in ['morgen', 'tomorrow']:
+            day = date.today() + timedelta(days=1)
+        else:
+            day = date.fromisoformat(day_str)
+    else:
+        day = date.today()
 
     # get meals
     meals = canteen.get_meals(day)
 
     update.message.reply_text(f'Am {day.strftime("%d.%m.%Y")} gibt es:')
 
-    if len(meals) == 0:
-        day: date = canteen.get_days()[0]['date']
-        update.message.reply_text('Leider nichts. Die Mensa öffnet erst wieder am ' + day.strftime('%d.%m.%Y'))
-    else:
-        for meal in meals:
-            meal_name = meal['name']
-            meal_price = f"{meal['prices']['Studierende']}€ / {meal['prices']['Bedienstete']}€"
-            meal_url = meal['url']
-            meal_photo = meal['image']
-            message: str = f'{meal_name} ({meal_price})\n{meal_photo}'
-            # TODO markdown parsing
-            update.message.reply_text(message)
+    if canteen.get_day(day)['closed']:
+        day: date = canteen.get_next_day_opened()
+        update.message.reply_text(f'Leider nichts. Die Mensa öffnet erst wieder am {day.strftime("%d.%m.%Y")}')
+        return
+
+    for meal in meals:
+        meal_name = meal['name']
+        meal_price = f"{meal['prices']['Studierende']}€ / {meal['prices']['Bedienstete']}€"
+        meal_url = meal['url']
+        meal_photo = meal['image']
+        message: str = f'{meal_name} ({meal_price})\n{meal_photo}'
+        # TODO markdown parsing  for url
+        update.message.reply_text(message)
 
 
 def button(update, _):

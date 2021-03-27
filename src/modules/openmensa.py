@@ -1,5 +1,5 @@
 from datetime import date
-from typing import Optional, List, Tuple, Union, Dict
+from typing import Optional, List, Tuple, Union
 import requests
 
 Coordinates = Tuple[float, float]

@@ -26,7 +26,7 @@ class TestCanteenApi(unittest.TestCase):
             with self.subTest(canteens=canteens):
                 self.assertIsNotNone(canteens, 'get_canteens should return a list')
                 for c in canteens:
-                    self.assertIsInstance(c, openmensa.Canteen,
+                    self.assertIsInstance(c, openmensa.MensaManager,
                                           'The List returned by get_canteens should only contain canteens')
 
         for c in canteens_list[2]:
@@ -60,8 +60,10 @@ class TestCanteenApi(unittest.TestCase):
         self.assertTrue(day > date.today(), 'The next day opened should not be before today')
 
     def test_get_meals(self):
-        meals = self.canteen.get_meals(self.canteen.get_days()[0]['date'])
+        day = self.canteen.get_next_day_opened()
+        meals = self.canteen.get_meals(day)
         self.assertIsInstance(meals, list, 'get_meals should return a list')
+        self.assertTrue(len(meals) > 0, 'Meals list should not be empty.')
 
         keys = ['id', 'name', 'notes', 'prices', 'category']
         prices = ['Studierende', 'Bedienstete']
@@ -81,8 +83,9 @@ class TestCanteenApi(unittest.TestCase):
             self.assertTrue(m['image'].startswith('https://'), 'The url of the image is malformed.')
 
     def test_get_meal(self):
-        day = self.canteen.get_days()[0]['date']
-        meal = self.canteen.get_meals(day)[0]
+        day = self.canteen.get_next_day_opened()
+        meals = self.canteen.get_meals(day)
+        meal = meals[0]
         self.assertEqual(self.canteen.get_meal(day, meal['id']), meal)
 
 
