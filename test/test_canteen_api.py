@@ -26,7 +26,7 @@ class TestCanteenApi(unittest.TestCase):
             with self.subTest(canteens=canteens):
                 self.assertIsNotNone(canteens, 'get_canteens should return a list')
                 for c in canteens:
-                    self.assertIsInstance(c, openmensa.MensaManager,
+                    self.assertIsInstance(c, openmensa.Canteen,
                                           'The List returned by get_canteens should only contain canteens')
 
         for c in canteens_list[2]:
