@@ -1,9 +1,11 @@
+import logging
 from datetime import date
 from typing import Optional, List, Tuple, Union
 import requests
 
 Coordinates = Tuple[float, float]
 Radius = Tuple[Coordinates, float]
+logger = logging.getLogger(__name__)
 
 
 class Canteen:
@@ -94,7 +96,7 @@ class Canteen:
 
     def get_meal(self, day: date, id_meal: str) -> dict:
         """ Returns a meal
-        Shortcut for get_meals(canteen_id, day, id_meal=id_meal)
+        Shortcut for get_meals(day, id_meal=id_meal)
         """
         return self.get_meals(day, id_meal=id_meal)
 
@@ -120,7 +122,7 @@ def send_request(url: str, params: Optional[dict] = None):
     if not url.isprintable():
         raise ValueError('Url must not be null or empty')
 
-    print(f'Sending request to {url}')
+    logger.debug(f'Sending request to {url}')
     response = requests.get(url, params)
     response.encoding = 'UTF-8'
     return response.json()
