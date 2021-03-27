@@ -174,7 +174,8 @@ def command_canteen(update, context):
         meal_url = meal['url']
         # only provide non-standard photos
         meal_photo = f"meal['image']" \
-            if meal['image'] != 'https://static.studentenwerk-dresden.de/bilder/mensen/studentenwerk-dresden-lieber-mensen-gehen.jpg' \
+            if meal['image'] != 'https://static.studentenwerk-dresden.de' \
+                                '/bilder/mensen/studentenwerk-dresden-lieber-mensen-gehen.jpg' \
             else ''
         # TODO markdown parsing  for url
         # seems to be broken currently
