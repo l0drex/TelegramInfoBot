@@ -1,9 +1,8 @@
 import unittest
 from datetime import date
-from main import urls
 from src.modules import openmensa
 
-openmensa.url_canteen = urls['mensa']
+openmensa.url_canteen = 'https://api.studentenwerk-dresden.de/openmensa/v2'
 
 
 class TestCanteenApi(unittest.TestCase):
